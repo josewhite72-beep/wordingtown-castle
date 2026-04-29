@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Castillo de Wordingtown</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none}
+#wrap{position:fixed;top:0;left:0;width:100%;height:100%;overflow:hidden}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:6px 8px;pointer-events:none;z-index:10}
+.hud-box{background:rgba(0,0,0,.82);color:#fff;padding:5px 9px;border-radius:6px;font:bold 12px 'Courier New',monospace;border:1px solid rgba(255,255,255,.2);line-height:1.5}
+#hud-zone{background:rgba(0,0,0,.82);color:#ffd700;font:bold 13px 'Courier New',monospace;padding:5px 12px;border-radius:6px;border:1px solid rgba(255,215,0,.4)}
+#lockbar{position:absolute;bottom:130px;left:50%;transform:translateX(-50%);display:flex;gap:10px;background:rgba(0,0,0,.82);padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.15);pointer-events:none;z-index:10}
+.lk{text-align:center;font:bold 10px 'Courier New',monospace;color:#aaa}
+.lk .li{font-size:16px;display:block;line-height:1.2}
+#dpad{position:absolute;bottom:12px;left:12px;display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:3px;z-index:20}
+.db{background:rgba(60,60,80,.9);border:2px solid rgba(255,255,255,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+.db:active{background:rgba(120,120,160,.9)}
+#db-u{grid-column:2;grid-row:1}
+#db-l{grid-column:1;grid-row:2}
+#db-c{grid-column:2;grid-row:2;opacity:.3;font-size:10px}
+#db-r{grid-column:3;grid-row:2}
+#db-d{grid-column:2;grid-row:3}
+#qov{position:absolute;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:100;padding:12px}
+#qov.on{display:flex}
+#qbox{background:#12122a;border:3px solid #ffd700;border-radius:16px;padding:22px 18px;width:100%;max-width:440px;color:#fff;text-align:center;font-family:'Courier New',monospace}
+#qbadge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:bold;margin-bottom:8px;letter-spacing:.5px}
+#qprogress{font-size:13px;color:#ffd700;margin:6px 0 10px;min-height:20px;letter-spacing:1px}
+#qqtext{font-size:16px;line-height:1.5;margin-bottom:16px;color:#f0f0f0}
+#qopts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.qo{background:#1a1a3e;border:2px solid #333;border-radius:10px;padding:11px 6px;font-size:14px;color:#fff;cursor:pointer;transition:all .15s;font-family:'Courier New',monospace;touch-action:manipulation}
+.qo:active,.qo:hover{border-color:#ffd700;background:#0f2060}
+.qo.ok{background:#0d3d0d;border-color:#4cff4c;color:#4cff4c}
+.qo.no{background:#3d0d0d;border-color:#ff4c4c;color:#ff4c4c}
+#dragzone{min-height:46px;border:2px dashed #ffd700;border-radius:10px;display:none;align-items:center;justify-content:center;color:#ffd700;font-size:14px;background:rgba(255,215,0,.05);margin-bottom:10px;padding:8px}
+#dragzone.filled{border-style:solid;background:rgba(255,215,0,.12);color:#fff}
+#chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:12px}
+.chip{background:#1a1a3e;border:2px solid #333;border-radius:8px;padding:9px 14px;font-size:14px;color:#fff;cursor:grab;font-family:'Courier New',monospace;touch-action:manipulation}
+.chip:active{background:#0f2060;border-color:#ffd700}
+#qfb{min-height:20px;font-size:13px;margin-bottom:10px;font-weight:bold}
+#qnext{background:#ffd700;color:#111;border:none;padding:10px 26px;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;font-family:'Courier New',monospace;display:none}
+#qlocked{color:#666;font-size:11px;margin-top:6px}
+#speakPhrase{font-size:20px;color:#4ade80;margin:10px 0;font-weight:bold;display:none}
+#speakBtn{background:#22c55e;color:#111;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;font-family:'Courier New',monospace;display:none;margin:8px 0}
+#speakBtn:disabled{background:#666;color:#999;cursor:not-allowed}
+#speakStatus{font-size:11px;color:#aaa;margin:4px 0;min-height:16px}
+#ns{position:absolute;inset:0;background:#080818;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;color:#fff;padding:24px;font-family:'Courier New',monospace}
+#ns h2{font-size:22px;color:#ffd700;margin-bottom:6px;text-align:center}
+#ns p{color:#888;margin-bottom:22px;font-size:12px;text-align:center}
+.nsinput{background:#12122a;border:2px solid #ffd700;border-radius:10px;padding:11px 16px;font-size:16px;color:#fff;font-family:'Courier New',monospace;width:100%;max-width:280px;text-align:center;outline:none;margin-bottom:10px;display:block}
+#startbtn{background:#ffd700;color:#111;border:none;padding:12px 32px;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;font-family:'Courier New',monospace;margin-top:8px;width:100%;max-width:280px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <div class="hud-box" id="hpl">—</div>
+    <div id="hud-zone" class="hud-box">Entrance Hall</div>
+    <div class="hud-box" id="hst">XP 0 | Lv 1</div>
+  </div>
+  <div id="lockbar">
+    <div class="lk"><span class="li" id="lk-grammar">🔒</span>Grammar</div>
+    <div class="lk"><span class="li" id="lk-vocabulary">🔒</span>Vocab</div>
+    <div class="lk"><span class="li" id="lk-listening">🔒</span>Listen</div>
+    <div class="lk"><span class="li" id="lk-speaking">🔒</span>Speak</div>
+  </div>
+  <div id="dpad">
+    <div class="db" id="db-u">▲</div>
+    <div class="db" id="db-l">◀</div>
+    <div class="db" id="db-c">●</div>
+    <div class="db" id="db-r">▶</div>
+    <div class="db" id="db-d">▼</div>
+  </div>
+  <div id="qov">
+    <div id="qbox">
+      <div id="qbadge">ZONE</div>
+      <div id="qprogress"></div>
+      <div id="qqtext">Question</div>
+      <div id="speakPhrase"></div>
+      <button id="speakBtn">🎤 Tap to Speak</button>
+      <div id="speakStatus"></div>
+      <div id="dragzone">Drop answer here</div>
+      <div id="chips"></div>
+      <div id="qopts"></div>
+      <div id="qfb"></div>
+      <button id="qnext" onclick="quizNext()">Continue →</button>
+      <div id="qlocked">Answer to continue</div>
+    </div>
+  </div>
+  <div id="ns">
+    <h2>⚔️ Castillo de Wordingtown</h2>
+    <p>English RPG · MEDUCA Panama · Grades 3–6</p>
+    <input id="nin" class="nsinput" type="text" placeholder="Your name..." maxlength="18" autocomplete="off">
+    <select id="ngrade" class="nsinput" style="margin-bottom:0">
+      <option value="0">Pre-Kinder</option>
+      <option value="1">Kinder</option>
+      <option value="2">1st Grade</option>
+      <option value="3">2nd Grade</option>
+      <option value="4" selected>3rd Grade</option>
+      <option value="5">4th Grade</option>
+      <option value="6">5th Grade</option>
+      <option value="7">6th Grade</option>
+    </select>
+    <button id="startbtn" onclick="startGame()">Enter the Castle! ⚔️</button>
+    <button onclick="resetSave()" style="margin-top:10px;background:transparent;border:1px solid #444;color:#666;padding:8px 20px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Courier New',monospace">🗑 Reset saved progress</button>
+    <p style="margin-top:12px;color:#555;font-size:10px;text-align:center">Grade 3 questions loaded · More grades coming soon</p>
+  </div>
+</div>
+
+<script>
+let QS = [];
+const MAP_IMG = new Image();
+MAP_IMG.src = 'mapa.png';
+const TS=32, COLS=25, ROWS=18;
+const CW=COLS*TS, CH=ROWS*TS;
+const V=9,WL=1,FL=0,DC=2,DO=3,NP=4,DE=5;
+
+// Mapa original - corresponde al mapa.png
+const MAP=[
+[1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,1,1,1,2,1,0,1,2,1,1,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,2,1,1,1,1,0,1,1,1,1,2,1,0,0,0,0,0,1],
+[1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
+[1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
+[1,1,1,1,1,1,1,2,0,0,0,0,0,0,0,0,0,2,1,1,1,1,1,1,1],
+[1,1,1,1,1,1,1,0,0,0,2,0,0,0,2,0,0,0,1,1,1,1,1,1,1],
+[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
+[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+const ZONE_ENTRY=5;
+const ZONE_INSIDE=3;
+const ZONE_EXIT=1;
+
+const ZC={
+  grammar:{label:'Grammar Dungeon',color:'#c084fc',badge:'#7c3aed',tag:'linguistic',floor:'#2a2535',wall:'#3d3550'},
+  vocabulary:{label:'Vocabulary Tower',color:'#60a5fa',badge:'#1d4ed8',tag:'linguistic',floor:'#1e2a3a',wall:'#2a3d55'},
+  listening:{label:'Listening Battlements',color:'#34d399',badge:'#0f766e',tag:'pragmatic',floor:'#1a2e2a',wall:'#253d35'},
+  speaking:{label:'Speaking Courtyard',color:'#4ade80',badge:'#065f46',tag:'sociolinguistic',floor:'#1a3020',wall:'#243d28'},
+  throne:{label:'Throne Room',color:'#fbbf24',badge:'#92400e',mechanic:'drag',floor:'#2a2010',wall:'#3d3015'},
+  entrada:{label:'Entrance Hall',color:'#9ca3af',badge:'#374151',floor:'#3a3a4a',wall:'#5a5a6a'},
+};
+
+const NPCS=[
+  {tx:3,ty:2,zone:'vocabulary',color:'#93c5fd',msg:'Name the word to climb the tower!'},
+  {tx:20,ty:2,zone:'listening',color:'#6ee7b7',msg:'Listen carefully and choose correctly!'},
+  {tx:3,ty:12,zone:'grammar',color:'#d8b4fe',msg:'Fix the grammar to escape the dungeon!'},
+  {tx:20,ty:12,zone:'speaking',color:'#fca5a5',msg:'Say it right to enter the courtyard!'},
+  {tx:11,ty:3,zone:'throne',color:'#fde68a',msg:'Prove your worth! Drag the answers to the throne!'},
+  {tx:12,ty:16,zone:'entrada',color:'#e5e7eb',msg:'Welcome, hero! Explore the castle and answer questions!'},
+];
+
+const DOORS=[
+  {tx:7, ty:6,  zone:'vocabulary'},
+  {tx:17,ty:6,  zone:'listening'},
+  {tx:6, ty:13, zone:'grammar'},
+  {tx:18,ty:13, zone:'speaking'},
+  {tx:12,ty:1,  zone:'throne'},
+];
+
+const ZONE_AREAS=[
+  {zone:'vocabulary',x1:1,y1:1,x2:6,y2:5},
+  {zone:'listening',x1:18,y1:1,x2:23,y2:5},
+  {zone:'grammar',x1:1,y1:10,x2:6,y2:14},
+  {zone:'speaking',x1:18,y1:10,x2:23,y2:14},
+  {zone:'throne',x1:9,y1:0,x2:15,y2:5},
+  {zone:'entrada',x1:1,y1:15,x2:23,y2:17},
+];
+
+const SM={
+  KEY:'wordingtown_v1',TKEY:'pk6_profiles_v2',
+  GK:{0:'prek',1:'k',2:'1st',3:'2nd',4:'3rd',5:'4th',6:'5th',7:'6th'},
+  def(n,g){return{playerName:n,grade:g,xp:0,level:1,correctCount:0,wrongCount:0,zonesCompleted:[],questionsAnswered:[],scenariosUnlocked:[1],zoneProgress:{},currentZone:null,insideQuestions:0,zoneAnswered:{}}},
+  load(){try{const s=localStorage.getItem(this.KEY);if(s)return JSON.parse(s);}catch(e){}return null;},
+  save(st){
+    try{localStorage.setItem(this.KEY,JSON.stringify(st));}catch(e){}
+    try{
+      const p=JSON.parse(localStorage.getItem(this.TKEY)||'{}');
+      const n=st.playerName,gk=this.GK[st.grade]||'3rd';
+      if(!p[n])p[n]={avatar:'boy',grades:{}};
+      if(!p[n].grades[gk])p[n].grades[gk]={correct:0,wrong:0,starsTotal:0,completed:[],lastPlayed:''};
+      const g=p[n].grades[gk];
+      g.correct=st.correctCount||0;g.wrong=st.wrongCount||0;
+      g.starsTotal=st.zonesCompleted.length;
+      g.completed=st.questionsAnswered.slice();
+      g.lastPlayed=new Date().toISOString();
+      localStorage.setItem(this.TKEY,JSON.stringify(p));
+    }catch(e){}
+  }
+};
+
+let AC=null;
+function ac(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();return AC;}
+function beep(f,d,t='square',v=.12){try{const a=ac(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.start();o.stop(a.currentTime+d);}catch(e){}}
+function sfxOk(){beep(523,.08);setTimeout(()=>beep(659,.08),90);setTimeout(()=>beep(784,.18),180);}
+function sfxNo(){beep(200,.3,'sawtooth');}
+function sfxUnlock(){[523,587,659,784].forEach((f,i)=>setTimeout(()=>beep(f,.12),i*70));}
+function sfxStep(){beep(180,.04,'square',.04);}
+const BGM_FILES={entrada:'bg/bgm_entrance.mp3',grammar:'bg/bgm_grammar.mp3',vocabulary:'bg/bgm_vocabulary.mp3',listening:'bg/bgm_listening.mp3',speaking:'bg/bgm_speaking.mp3',throne:'bg/bgm_throne.mp3'};
+const bgm={current:null,zone:null,volume:0.4,play(zone){if(this.zone===zone)return;const file=BGM_FILES[zone];if(!file)return;this.stop();const a=new Audio(file);a.loop=true;a.volume=this.volume;a.play().catch(()=>{});this.current=a;this.zone=zone;},stop(){if(this.current){this.current.pause();this.current.currentTime=0;this.current=null;this.zone=null;}},fadeAndPlay(zone){if(this.zone===zone)return;if(this.current){const o=this.current;let v=o.volume;const fi=setInterval(()=>{v=Math.max(0,v-.05);o.volume=v;if(v<=0){clearInterval(fi);o.pause();}},50);}this.zone=null;this.play(zone);},setVolume(v){this.volume=v;if(this.current)this.current.volume=v;}};
+function tts(t){if(!speechSynthesis)return;const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.85;speechSynthesis.cancel();speechSynthesis.speak(u);}
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+let VW=window.innerWidth, VH=window.innerHeight;
+let currentScale=1;
+function resize(){VW=window.innerWidth; VH=window.innerHeight;canvas.width=VW; canvas.height=VH;canvas.style.position='absolute';canvas.style.left='0'; canvas.style.top='0';currentScale=Math.max(VW/CW, VH/CH);ctx.imageSmoothingEnabled=false;}
+resize();
+window.addEventListener('resize',resize);
+function getCamOffset(){const viewW=VW/currentScale, viewH=VH/currentScale;const cx=Math.round(PL.px-viewW/2), cy=Math.round(PL.py-viewH/2);const maxX=CW-viewW, maxY=CH-viewH;return{x:Math.max(0,Math.min(cx,maxX>0?maxX:0)),y:Math.max(0,Math.min(cy,maxY>0?maxY:0))};}
+
+const tmap=MAP.map(r=>r.slice());
+function tget(x,y){if(y<0||y>=ROWS||x<0||x>=COLS)return V;return tmap[y][x];}
+function tset(x,y,v){if(y>=0&&y<ROWS&&x>=0&&x<COLS)tmap[y][x]=v;}
+function tsolid(x,y){const v=tget(x,y);return v===WL||v===DC||v===V;}
+
+function floorColor(tx,ty){for(const za of ZONE_AREAS){if(tx>=za.x1&&tx<=za.x2&&ty>=za.y1&&ty<=za.y2)return ZC[za.zone].floor;}return '#3a3a4a';}
+function wallColor(tx,ty){for(const za of ZONE_AREAS){if(tx>=za.x1&&tx<=za.x2&&ty>=za.y1&&ty<=za.y2)return ZC[za.zone].wall;}return '#5a5a6a';}
+let torchPhase=0;
+
+function renderMap(){
+  const imgReady = MAP_IMG.complete && MAP_IMG.naturalWidth > 0;
+  if(imgReady){ ctx.drawImage(MAP_IMG, 0, 0, CW, CH); }
+  
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const t=tmap[y][x], px=x*TS, py=y*TS;
+      if(t===DC){
+        const cx = px + TS/2;
+        const cy = py + TS/2;
+        // Shadow
+        ctx.fillStyle='rgba(0,0,0,0.5)';
+        ctx.fillRect(cx-10,cy-8,22,22);
+        // Shackle (arc)
+        ctx.strokeStyle='#cc2200';ctx.lineWidth=4;
+        ctx.beginPath();ctx.arc(cx,cy-4,8,Math.PI,0);ctx.stroke();
+        // Body
+        ctx.fillStyle='#cc2200';ctx.fillRect(cx-10,cy-3,20,16);
+        // Highlight
+        ctx.fillStyle='#ff4444';ctx.fillRect(cx-8,cy-1,8,5);
+        // Keyhole
+        ctx.fillStyle='#000';ctx.beginPath();ctx.arc(cx,cy+5,3,0,Math.PI*2);ctx.fill();
+        ctx.fillRect(cx-2,cy+5,4,5);
+      }
+    }
+  }
+}
+
+function renderNPCs(frame){
+  NPCS.forEach(npc=>{
+    const px=npc.tx*TS, py=npc.ty*TS;
+    const bob=Math.sin(frame*.06)*2; const cx=px+TS/2;
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(cx,py+TS-3,7,3,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=npc.color;ctx.beginPath();ctx.moveTo(cx,py+5+bob);ctx.lineTo(px+5,py+TS-5+bob);ctx.lineTo(px+TS-5,py+TS-5+bob);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#fde68a';ctx.beginPath();ctx.arc(cx,py+6+bob,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1e293b';ctx.fillRect(cx-3,py+5+bob,2,2);ctx.fillRect(cx+1,py+5+bob,2,2);
+    ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(cx-6,py-14+bob,12,11);ctx.strokeStyle=npc.color;ctx.lineWidth=1;ctx.strokeRect(cx-6,py-14+bob,12,11);
+    ctx.fillStyle=npc.color;ctx.font='bold 9px "Courier New"';ctx.textAlign='center';ctx.fillText('!',cx,py-5+bob);
+  });
+}
+
+const PL={
+  px:12*TS+TS/2, py:16*TS+TS/2, spd:2.5, dir:'down', frame:0, ft:0, moving:false, st:0,
+  get tx(){return Math.floor(this.px/TS);}, get ty(){return Math.floor(this.py/TS);},
+  update(keys){
+    let dx=0,dy=0;
+    if(keys.up){dy=-1;this.dir='up';} if(keys.down){dy=1;this.dir='down';}
+    if(keys.left){dx=-1;this.dir='left';} if(keys.right){dx=1;this.dir='right';}
+    this.moving=dx!==0||dy!==0;
+    if(this.moving){
+      const hw=10; const nx=this.px+dx*this.spd, ny=this.py+dy*this.spd;
+      const txL=Math.floor((nx-hw)/TS), txR=Math.floor((nx+hw)/TS);
+      const tyT=Math.floor((this.py-hw)/TS), tyB=Math.floor((this.py+hw)/TS);
+      if(!tsolid(txL,tyT)&&!tsolid(txR,tyT)&&!tsolid(txL,tyB)&&!tsolid(txR,tyB))this.px=nx;
+      const txCL=Math.floor((this.px-hw)/TS), txCR=Math.floor((this.px+hw)/TS);
+      const nyT=Math.floor((ny-hw)/TS), nyB=Math.floor((ny+hw)/TS);
+      if(!tsolid(txCL,nyT)&&!tsolid(txCR,nyT)&&!tsolid(txCL,nyB)&&!tsolid(txCR,nyB))this.py=ny;
+      this.ft++;if(this.ft>7){this.frame=(this.frame+1)%4;this.ft=0;}
+      this.st++;if(this.st>22){sfxStep();this.st=0;}
+    }else{this.frame=0;this.st=0;}
+  },
+  draw(){
+    const x=this.px-TS/2, y=this.py-TS/2;
+    const bob=this.moving?Math.sin(this.frame*1.57)*2:0; const legOff=this.moving?Math.sin(this.frame*1.57)*4:0;
+    ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(this.px,y+TS-1,8,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1e3a8a';ctx.fillRect(x+7,y+26+bob-legOff,8,6);ctx.fillRect(x+17,y+26+bob+legOff,8,6);
+    ctx.fillStyle='#4a2000';ctx.fillRect(x+6,y+30+bob-legOff,9,4);ctx.fillRect(x+17,y+30+bob+legOff,9,4);
+    ctx.fillStyle='#2563eb';ctx.fillRect(x+5,y+14+bob,22,14);ctx.fillStyle='#92400e';ctx.fillRect(x+5,y+24+bob,22,3);
+    ctx.fillStyle='#2563eb';ctx.fillRect(x+2,y+14+bob,5,10);ctx.fillRect(x+25,y+14+bob,5,10);
+    ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(this.px,y+10+bob,9,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#92400e';ctx.fillRect(x+3,y+2+bob,26,7);ctx.fillStyle='#1e293b';
+    if(this.dir==='down'){ctx.fillRect(this.px-4,y+11+bob,3,3);ctx.fillRect(this.px+1,y+11+bob,3,3);}
+    else if(this.dir==='up'){ctx.fillRect(this.px-4,y+8+bob,3,3);ctx.fillRect(this.px+1,y+8+bob,3,3);}
+    else if(this.dir==='right'){ctx.fillRect(this.px+3,y+10+bob,3,3);}
+    else{ctx.fillRect(this.px-6,y+10+bob,3,3);}
+    ctx.fillStyle='#9ca3af';ctx.fillRect(x+27,y+14+bob,3,18);ctx.fillStyle='#6b7280';ctx.fillRect(x+24,y+20+bob,9,3);
+  }
+};
+
+let dlgMsg='',dlgTimer=0;
+function showDlg(msg,frames=180){dlgMsg=msg;dlgTimer=frames;}
+function drawDlg(){
+  if(dlgTimer<=0)return;dlgTimer--;
+  const w=VW-60,h=66,x=30,y=VH-h-70;
+  ctx.fillStyle='rgba(0,0,0,.88)';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#ffd700';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle='#fff';ctx.font='13px "Courier New"';ctx.textAlign='left';
+  const words=dlgMsg.split(' ');let line='',lines=[];
+  words.forEach(w2=>{const test=line+(line?' ':'')+w2;if(test.length>48&&line){lines.push(line);line=w2;}else line=test;});
+  lines.push(line); lines.forEach((ln,i)=>ctx.fillText(ln,x+12,y+22+i*18));
+}
+
+let QST=null,dragAns=null,iCool=60; let speechRec=null,speakAttempts=0,speakFallback=false;
+
+function openQuiz(zoneId, mode){
+  // mode: 'entry' | 'inside' | 'exit'
+  mode = mode || 'entry';
+  if(!ZC[zoneId]){showDlg('Zone not found: '+zoneId);G.paused=false;return;}
+  const zc=ZC[zoneId];
+  if(!QS||!QS.length){QS=FALLBACK_QS;}
+  if(!G.state.zoneProgress)G.state.zoneProgress={};
+  if(!G.state.zoneAnswered)G.state.zoneAnswered={};
+  if(!G.state.zoneAnswered[zoneId])G.state.zoneAnswered[zoneId]=[];
+  if(!G.state.zoneProgress[zoneId])G.state.zoneProgress[zoneId]=0;
+
+  let pool, required, modeLabel;
+
+  if(mode==='exit'){
+    // Exit: 1 question from already-answered pool (review)
+    pool = QS.filter(q=>G.state.questionsAnswered.includes(q.question_id));
+    if(!pool.length) pool = QS.filter(q=>q.competence_tag===zc.tag);
+    required = ZONE_EXIT;
+    modeLabel = '🚪 Exit Challenge';
+    G.state.exitProgress = 0;
+  } else if(mode==='inside'){
+    // Inside: zone skill questions
+    pool = QS.filter(q=>q.competence_tag===zc.tag);
+    required = ZONE_INSIDE;
+    modeLabel = '📖 Practice';
+    if(!G.state.insideProgress)G.state.insideProgress={};
+    if(!G.state.insideProgress[zoneId])G.state.insideProgress[zoneId]=0;
+  } else {
+    // Entry: 5 questions to unlock door
+    pool = (zoneId==='throne')
+      ? QS.filter(q=>q.mechanic_type==='drag')
+      : QS.filter(q=>q.competence_tag===zc.tag);
+    required = ZONE_ENTRY;
+    modeLabel = '🔒 Entry Challenge';
+  }
+
+  if(!pool.length){
+    showDlg('No questions available for '+zc.label+'!');
+    G.paused=false;iCool=120;return;
+  }
+
+  // Pick unseen question
+  const seen = G.state.zoneAnswered[zoneId]||[];
+  let unans = pool.filter(q=>!seen.includes(q.question_id));
+  if(!unans.length){G.state.zoneAnswered[zoneId]=[];unans=pool;}
+  const q = unans[Math.floor(Math.random()*unans.length)];
+  G.state.zoneAnswered[zoneId].push(q.question_id);
+
+  // Progress for display
+  let prog=0;
+  if(mode==='entry') prog=G.state.zoneProgress[zoneId]||0;
+  else if(mode==='inside') prog=(G.state.insideProgress||{})[zoneId]||0;
+  else prog=G.state.exitProgress||0;
+
+  QST={q,zoneId,answered:false,mode,required};
+  dragAns=null;
+
+  // Update UI
+  const badge=document.getElementById('qbadge');
+  badge.textContent=zc.label+' · '+modeLabel;
+  badge.style.background=zc.badge||'#444';
+  document.getElementById('qprogress').textContent=
+    Array.from({length:required},(_,i)=>i<prog?'⭐':'○').join(' ')+' '+prog+'/'+required;
+  document.getElementById('qqtext').textContent=q.question_text;
+  document.getElementById('qfb').textContent='';
+  document.getElementById('qnext').style.display='none';
+  document.getElementById('qlocked').style.display='block';
+
+  const opts=document.getElementById('qopts');
+  const dz=document.getElementById('dragzone');
+  const chips=document.getElementById('chips');
+  chips.innerHTML='';opts.innerHTML='';
+
+  if(q.mechanic_type==='drag'){
+    dz.style.display='flex';dz.textContent='Drop answer here';dz.classList.remove('filled');
+    opts.style.display='block';
+    q.options.forEach(opt=>{
+      const ch=document.createElement('div');ch.className='chip';ch.textContent=opt;
+      ch.addEventListener('touchend',e=>{e.preventDefault();if(!QST.answered)commitDrag(opt);},{passive:false});
+      ch.addEventListener('click',()=>{if(!QST.answered)commitDrag(opt);});
+      chips.appendChild(ch);
+    });
+    dz.ondragover=e=>e.preventDefault();
+    dz.ondrop=e=>{e.preventDefault();commitDrag(e.dataTransfer.getData('text'));};
+  } else {
+    dz.style.display='none';opts.style.display='grid';
+    q.options.forEach(opt=>{
+      const b=document.createElement('button');b.className='qo';b.textContent=opt;
+      b.addEventListener('click',()=>tapAns(opt,b));
+      opts.appendChild(b);
+    });
+    if(zc.skill==='listening') setTimeout(()=>tts(q.question_text),400);
+    else tts(q.question_text);
+  }
+
+  document.getElementById('qov').classList.add('on');
+  if(bgm.current)bgm.current.volume=bgm.volume*0.3;
+  G.paused=true;
+}
+
+
+function showTapOptions(q){const opts=document.getElementById('qopts'),dz=document.getElementById('dragzone'),chips=document.getElementById('chips');dz.style.display='none';chips.innerHTML='';opts.style.display='grid';q.options.forEach(opt=>{const b=document.createElement('button');b.className='qo';b.textContent=opt;b.addEventListener('click',()=>tapAns(opt,b));opts.appendChild(b);});}
+function commitDrag(val){if(QST.answered)return;dragAns=val;const dz=document.getElementById('dragzone');dz.textContent=val;dz.classList.add('filled');evalAns(val);}
+function tapAns(val,btn){if(QST.answered)return;document.querySelectorAll('.qo').forEach(b=>b.disabled=true);evalAns(val,btn);}
+
+function evalAns(val,btn){
+  QST.answered=true;
+  const ok=val===QST.q.correct_answer;
+  const fb=document.getElementById('qfb');
+  const mode=QST.mode||'entry';
+  const required=QST.required||ZONE_ENTRY;
+
+  if(ok){
+    sfxOk();fb.textContent='✓ Correct!';fb.style.color='#4cff4c';
+    if(btn)btn.classList.add('ok');
+    recordAns(true,QST.q.question_id);
+
+    if(mode==='entry'){
+      if(!G.state.zoneProgress)G.state.zoneProgress={};
+      G.state.zoneProgress[QST.zoneId]=(G.state.zoneProgress[QST.zoneId]||0)+1;
+      SM.save(G.state);
+      const prog=G.state.zoneProgress[QST.zoneId];
+      if(prog>=required){
+        // Door unlocked — enter zone
+        unlockDoor(QST.zoneId);
+        G.state.zoneProgress[QST.zoneId]=0; // reset for next time
+        document.getElementById('qnext').textContent='Enter '+ZC[QST.zoneId].label+'! 🎉';
+        tts('Excellent! Door unlocked!');
+      } else {
+        document.getElementById('qnext').textContent='✓ '+(required-prog)+' more to enter →';
+        tts('Correct! '+(required-prog)+' more!');
+      }
+
+    } else if(mode==='inside'){
+      if(!G.state.insideProgress)G.state.insideProgress={};
+      G.state.insideProgress[QST.zoneId]=(G.state.insideProgress[QST.zoneId]||0)+1;
+      SM.save(G.state);
+      const prog=G.state.insideProgress[QST.zoneId];
+      if(prog>=required){
+        G.state.insideProgress[QST.zoneId]=0;
+        document.getElementById('qnext').textContent='Well done! Zone practiced! ⭐';
+        completeZone(QST.zoneId);
+        tts('Excellent! Zone complete!');
+      } else {
+        document.getElementById('qnext').textContent='✓ '+(required-prog)+' more inside →';
+        tts('Correct! Keep going!');
+      }
+
+    } else if(mode==='exit'){
+      // Exit unlocked — open the door from inside
+      G.state.exitProgress=0;
+      unlockDoorFromInside(QST.zoneId);
+      G.state.currentZone=null;
+      G.state.insideProgress=G.state.insideProgress||{};
+      G.state.insideProgress[QST.zoneId]=0;
+      document.getElementById('qnext').textContent='Door open! Exit now 🚪';
+      tts('Correct! You may leave!');
+    }
+
+  } else {
+    sfxNo();fb.textContent='✗ Wrong! Answer: '+QST.q.correct_answer;fb.style.color='#ff6666';
+    if(btn){btn.classList.add('no');document.querySelectorAll('.qo').forEach(b=>{if(b.textContent===QST.q.correct_answer)b.classList.add('ok');});}
+    recordAns(false,QST.q.question_id);
+    document.getElementById('qnext').textContent='Try again →';
+    tts('The answer is '+QST.q.correct_answer);
+  }
+  document.getElementById('qnext').style.display='inline-block';
+  document.getElementById('qlocked').style.display='none';
+}
+
+function quizNext(){document.getElementById('qov').classList.remove('on');if(bgm.current)bgm.current.volume=bgm.volume;G.paused=false;iCool=80;}
+function onQuestionTriggered(zoneId){openQuiz(zoneId,false);}
+function unlockDoorFromInside(zoneId){
+  // Re-open the door tile so player can walk through
+  DOORS.forEach(d=>{if(d.zone===zoneId)tset(d.tx,d.ty,DO);});
+  sfxUnlock();
+  showDlg('Exit unlocked! Walk through the door.');
+}
+function unlockDoor(zoneId){DOORS.forEach(d=>{if(d.zone===zoneId)tset(d.tx,d.ty,DO);});sfxUnlock();showDlg('Door unlocked! Enter '+ZC[zoneId].label);G.state.zoneProgress[zoneId]=0;}
+function updatePlayerXP(amt){G.state.xp+=amt;const lv=Math.floor(G.state.xp/100)+1;if(lv>G.state.level){G.state.level=lv;showDlg('LEVEL UP! Now level '+lv+'!');}SM.save(G.state);updateHUD();}
+function recordAns(ok,qId){if(ok){G.state.correctCount=(G.state.correctCount||0)+1;if(!G.state.questionsAnswered.includes(qId))G.state.questionsAnswered.push(qId);updatePlayerXP(10);}else{G.state.wrongCount=(G.state.wrongCount||0)+1;SM.save(G.state);}}
+function completeZone(z){if(z==='entrada'||z==='throne')return;if(!G.state.zonesCompleted.includes(z)){G.state.zonesCompleted.push(z);const el=document.getElementById('lk-'+z);if(el)el.textContent='⭐';SM.save(G.state);showDlg(ZC[z].label+' complete! Medal earned!');if(G.state.zonesCompleted.length===4){setTimeout(()=>{showDlg('All 4 medals! The Throne Room is now open!');unlockDoor('throne');},2500);}}}
+function getPlayerState(){return JSON.parse(JSON.stringify(G.state));}
+function updateHUD(){const s=G.state;const GL={0:'Pre-K',1:'Kinder',2:'1st',3:'2nd',4:'3rd',5:'4th',6:'5th',7:'6th'};document.getElementById('hpl').textContent=s.playerName+' · '+(GL[s.grade]||'Gr'+s.grade);document.getElementById('hst').textContent='XP '+s.xp+' | Lv '+s.level;['grammar','vocabulary','listening','speaking'].forEach(z=>{const el=document.getElementById('lk-'+z);if(el)el.textContent=s.zonesCompleted.includes(z)?'⭐':'🔒';});}
+
+let lastZone='entrada';
+function detectZone(tx,ty){
+  for(const za of ZONE_AREAS){
+    if(tx>=za.x1&&tx<=za.x2&&ty>=za.y1&&ty<=za.y2){
+      if(za.zone!==lastZone){
+        lastZone=za.zone;
+        document.getElementById('hud-zone').textContent=ZC[za.zone]?ZC[za.zone].label:za.zone;
+        if(bgm&&bgm.fadeAndPlay)bgm.fadeAndPlay(za.zone);
+        // Update currentZone for inside/outside tracking
+        const zoneRooms=['grammar','vocabulary','listening','speaking','throne'];
+        if(zoneRooms.includes(za.zone)){
+          if(G.state.currentZone!==za.zone){
+            G.state.currentZone=za.zone;
+            G.state.insideProgress=G.state.insideProgress||{};
+            G.state.insideProgress[za.zone]=0; // reset inside counter on entry
+          }
+        } else {
+          G.state.currentZone=null; // in common area
+        }
+      }
+      return;
+    }
+  }
+  // Not in any zone area
+  if(lastZone!=='entrada'){
+    lastZone='entrada';
+    document.getElementById('hud-zone').textContent='Entrance Hall';
+    if(bgm&&bgm.fadeAndPlay)bgm.fadeAndPlay('entrada');
+    G.state.currentZone=null;
+  }
+}
+
+
+function checkInteract(){
+  if(iCool>0){iCool--;return;}
+  const tx=PL.tx,ty=PL.ty;
+  const inside=G.state.currentZone; // null if in common area
+  const adj=[{dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0}];
+
+  for(const a of adj){
+    const nx=tx+a.dx,ny=ty+a.dy,t=tget(nx,ny);
+
+    // ── Door interaction ──────────────────────────────────────────────────
+    if(t===DC){
+      const d=DOORS.find(d=>d.tx===nx&&d.ty===ny);
+      if(!d){continue;}
+
+      // Throne Room special lock
+      if(d.zone==='throne'&&G.state.zonesCompleted.length<4){
+        showDlg('Complete all 4 zones to enter the Throne Room!');
+        iCool=120;return;
+      }
+
+      if(inside && inside===d.zone){
+        // INSIDE → touching door = EXIT challenge
+        showDlg('Answer 1 question to leave '+ZC[d.zone].label+'!');
+        setTimeout(()=>openQuiz(d.zone,'exit'),1800);
+      } else if(!inside){
+        // OUTSIDE → touching door = ENTRY challenge
+        const prog=G.state.zoneProgress[d.zone]||0;
+        const remaining=ZONE_ENTRY-prog;
+        if(remaining>0){
+          showDlg('Answer '+ZONE_ENTRY+' questions to enter '+ZC[d.zone].label+'! ('+prog+'/'+ZONE_ENTRY+' done)');
+        } else {
+          showDlg('Answer 5 questions to enter '+ZC[d.zone].label+'!');
+        }
+        setTimeout(()=>openQuiz(d.zone,'entry'),1800);
+      }
+      iCool=200;return;
+    }
+
+    // ── NPC interaction ───────────────────────────────────────────────────
+    if(t===NP){
+      const npc=NPCS.find(n=>n.tx===nx&&n.ty===ny);
+      if(!npc){continue;}
+      showDlg(npc.msg);tts(npc.msg);
+      // Inside a zone → NPC gives inside-zone practice
+      if(inside && inside===npc.zone && inside!=='entrada' && inside!=='throne'){
+        setTimeout(()=>openQuiz(npc.zone,'inside'),600);
+      }
+      iCool=200;return;
+    }
+  }
+}
+
+
+const keys={up:false,down:false,left:false,right:false};
+window.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){keys.up=true;e.preventDefault();}if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){keys.down=true;e.preventDefault();}if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){keys.left=true;e.preventDefault();}if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){keys.right=true;e.preventDefault();}});
+window.addEventListener('keyup',e=>{if(e.key==='ArrowUp'||e.key==='w'||e.key==='W')keys.up=false;if(e.key==='ArrowDown'||e.key==='s'||e.key==='S')keys.down=false;if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')keys.left=false;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')keys.right=false;});
+function setupDpad(){const m={'db-u':'up','db-d':'down','db-l':'left','db-r':'right'};Object.entries(m).forEach(([id,dir])=>{const el=document.getElementById(id);el.addEventListener('touchstart',e=>{e.preventDefault();keys[dir]=true;},{passive:false});el.addEventListener('touchend',e=>{e.preventDefault();keys[dir]=false;},{passive:false});el.addEventListener('mousedown',()=>keys[dir]=true);el.addEventListener('mouseup',()=>keys[dir]=false);});}
+
+const G={state:null,paused:false,frame:0,
+  init(name,grade){
+    const saved=SM.load();
+    this.state=(saved&&saved.playerName===name)?saved:SM.def(name,grade);
+    this.state.playerName=name;this.state.grade=grade;
+    if(!this.state.zoneProgress)this.state.zoneProgress={};
+    this.state.zonesCompleted.forEach(z=>DOORS.forEach(d=>{if(d.zone===z)tset(d.tx,d.ty,DO);}));
+    setupDpad();updateHUD();bgm.play('entrada');
+    showDlg('Go North! Find the Brown Doors to answer questions!',300);
+    this.loop();
+  },
+  loop(){
+    torchPhase+=.06;
+    if(!this.paused){this.frame++;PL.update(keys);checkInteract();detectZone(PL.tx,PL.ty);}
+    const cam=getCamOffset();
+    ctx.clearRect(0,0,VW,VH);
+    ctx.save();ctx.scale(currentScale,currentScale);ctx.translate(-cam.x,-cam.y);
+    renderMap();renderNPCs(this.frame);PL.draw();
+    ctx.restore();drawDlg();
+    requestAnimationFrame(()=>this.loop());
+  }
+};
+
+function resetSave(){if(!confirm('Delete all saved progress?'))return;localStorage.removeItem(SM.KEY);alert('Progress cleared. Enter your name to start fresh.');}
+
+const FALLBACK_QS=[
+{"question_id":1,"question_text":"We borrow books at the ___","options":["library","market","hospital"],"correct_answer":"library","mechanic_type":"tap","competence_tag":"sociolinguistic"},
+{"question_id":2,"question_text":"We see a doctor at the ___","options":["hospital","park","school"],"correct_answer":"hospital","mechanic_type":"tap","competence_tag":"sociolinguistic"},
+{"question_id":3,"question_text":"We play and run at the ___","options":["park","bank","library"],"correct_answer":"park","mechanic_type":"tap","competence_tag":"sociolinguistic"},
+{"question_id":4,"question_text":"We save money at the ___","options":["bank","park","market"],"correct_answer":"bank","mechanic_type":"tap","competence_tag":"sociolinguistic"},
+{"question_id":5,"question_text":"We buy vegetables at the ___","options":["market","school","bank"],"correct_answer":"market","mechanic_type":"tap","competence_tag":"sociolinguistic"},
+{"question_id":11,"question_text":"___ I have a pencil?","options":["Can","Do","Am"],"correct_answer":"Can","mechanic_type":"tap","competence_tag":"linguistic"},
+{"question_id":12,"question_text":"Can I ___ your book?","options":["use","eat","run"],"correct_answer":"use","mechanic_type":"tap","competence_tag":"linguistic"},
+{"question_id":13,"question_text":"Can I have ___ eraser?","options":["an","a","the"],"correct_answer":"an","mechanic_type":"tap","competence_tag":"linguistic"},
+{"question_id":14,"question_text":"Can I borrow a ___?","options":["pencil","desk","door"],"correct_answer":"pencil","mechanic_type":"tap","competence_tag":"linguistic"},
+{"question_id":15,"question_text":"Can I have some ___?","options":["paper","chair","floor"],"correct_answer":"paper","mechanic_type":"tap","competence_tag":"linguistic"},
+{"question_id":31,"question_text":"The weather is ___","options":["nice","run","eat"],"correct_answer":"nice","mechanic_type":"tap","competence_tag":"pragmatic"},
+{"question_id":32,"question_text":"It is a ___ day","options":["beautiful","jump","blue"],"correct_answer":"beautiful","mechanic_type":"tap","competence_tag":"pragmatic"},
+{"question_id":33,"question_text":"The sky is ___","options":["clear","eat","run"],"correct_answer":"clear","mechanic_type":"tap","competence_tag":"pragmatic"},
+{"question_id":34,"question_text":"Today is ___","options":["sunny","table","chair"],"correct_answer":"sunny","mechanic_type":"tap","competence_tag":"pragmatic"},
+{"question_id":35,"question_text":"It feels ___","options":["good","book","floor"],"correct_answer":"good","mechanic_type":"tap","competence_tag":"pragmatic"}
+];
+
+function startGame(){
+  const name=document.getElementById('nin').value.trim(),grade=parseInt(document.getElementById('ngrade').value);
+  if(!name){document.getElementById('nin').focus();return;}
+  const GK={0:'prek',1:'k',2:'1st',3:'2nd',4:'3rd',5:'4th',6:'5th',7:'6th'},gk=GK[grade]||'3rd',path='questions/grade_'+gk+'.js';
+  fetch(path).then(r=>{if(!r.ok)throw new Error('File not found');return r.text();})
+    .then(text=>{const match=text.match(/=\s*(\[[\s\S]*\]);?\s*$/);if(match)QS=JSON.parse(match[1]);else throw new Error('Could not parse questions');console.log('Loaded',QS.length,'questions for grade',gk);launchGame(name,grade);})
+    .catch(err=>{console.warn(err.message,'— using embedded Grade 3 fallback');QS=FALLBACK_QS;launchGame(name,grade);});
+}
+function launchGame(name,grade){document.getElementById('ns').style.display='none';try{ac().resume();}catch(e){}G.init(name,grade);}
+document.getElementById('nin').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+</script>
+</body>
+</html>
